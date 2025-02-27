@@ -123,7 +123,7 @@ def trainer_interface(trainer_login):
     search_term = st.text_input("🔍 Buscar Aluno por ID ou Nome")
     
     # Adicionar a opção "Nenhum aluno" com ID 000
-    filtered_students = [("000", {"name": "Nenhum aluno", "weight": 0, "height": 0})]
+    filtered_students = [("000", {"name": "-", "weight": 0, "height": 0})]
     for student_id, student_info in data["students"].items():
         if not search_term or search_term.lower() in student_id.lower() or search_term.lower() in student_info["name"].lower():
             filtered_students.append((student_id, student_info))
