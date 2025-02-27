@@ -87,11 +87,11 @@ def trainer_interface(trainer_login):
             st.write("Preencha os dados do aluno:")
             col1, col2 = st.columns(2)
             with col1:
-                student_name = st.text_input("Nome do Aluno")
+                student_name = st.text_input("Nome do Aluno", key="student_name")
             with col2:
-                student_weight = st.number_input("Peso do Aluno (kg)", min_value=0.0)
-            student_height = st.number_input("Altura do Aluno (cm)", min_value=0.0)
-            student_email = st.text_input("E-mail do Aluno")
+                student_weight = st.number_input("Peso do Aluno (kg)", min_value=0.0, key="student_weight")
+            student_height = st.number_input("Altura do Aluno (cm)", min_value=0.0, key="student_height")
+            student_email = st.text_input("E-mail do Aluno", key="student_email")
             submitted = st.form_submit_button("Adicionar Aluno")
             
             if submitted:
@@ -110,6 +110,12 @@ def trainer_interface(trainer_login):
                 }
                 save_trainer_students(trainer_login, data)
                 st.success(f"✅ Aluno adicionado com sucesso! ID do Aluno: {student_id}, Login: {login}")
+                
+                # Limpar os campos após adicionar o aluno
+                st.session_state.student_name = ""
+                st.session_state.student_weight = 0.0
+                st.session_state.student_height = 0.0
+                st.session_state.student_email = ""
                 st.rerun()  # Recarrega a página para atualizar a lista de alunos
 
     # Lista de todos os alunos com busca integrada
@@ -168,10 +174,10 @@ def trainer_interface(trainer_login):
             # Menu suspenso para editar informações do aluno
             with st.expander("✏️ Editar Informações do Aluno", expanded=False):
                 with st.form("edit_student_info"):
-                    new_name = st.text_input("Nome do Aluno", value=student["name"])
-                    new_weight = st.number_input("Peso do Aluno (kg)", value=student["weight"])
-                    new_height = st.number_input("Altura do Aluno (cm)", value=student["height"])
-                    new_email = st.text_input("E-mail do Aluno", value=student["email"])
+                    new_name = st.text_input("Nome", value=student["name"], key="edit_name")
+                    new_weight = st.number_input("Peso (kg)", value=student["weight"], key="edit_weight")
+                    new_height = st.number_input("Altura (cm)", value=student["height"], key="edit_height")
+                    new_email = st.text_input("E-mail", value=student["email"], key="edit_email")
                     submitted = st.form_submit_button("Salvar Alterações")
                     
                     if submitted:
@@ -183,13 +189,14 @@ def trainer_interface(trainer_login):
                         student["weight_history"].append({"weight": new_weight, "date": datetime.now().strftime("%Y-%m-%d")})
                         save_trainer_students(trainer_login, data)
                         st.success("✅ Informações do aluno atualizadas com sucesso!")
+                        st.rerun()  # Recarrega a página para atualizar as informações
 
             # Menu suspenso para adicionar treino
             with st.expander("➕ Adicionar Treino", expanded=False):
                 with st.form("add_workout"):
-                    workout_name = st.text_input("Nome do Treino", key=f"workout_name_{selected_student_id}")
-                    workout_description = st.text_area("Descrição do Treino", key=f"workout_description_{selected_student_id}")
-                    exercises = st.text_area("Exercícios (um por linha)", key=f"exercises_{selected_student_id}")
+                    workout_name = st.text_input("Nome do Treino", key="workout_name")
+                    workout_description = st.text_area("Descrição do Treino", key="workout_description")
+                    exercises = st.text_area("Exercícios (um por linha)", key="exercises")
                     submitted = st.form_submit_button("Adicionar Treino")
                     
                     if submitted:
@@ -201,6 +208,11 @@ def trainer_interface(trainer_login):
                         })
                         save_trainer_students(trainer_login, data)
                         st.success("✅ Treino adicionado com sucesso!")
+                        
+                        # Limpar os campos após adicionar o treino
+                        st.session_state.workout_name = ""
+                        st.session_state.workout_description = ""
+                        st.session_state.exercises = ""
                         st.rerun()  # Recarrega a página para limpar os campos
 
             # Exibir treinos do aluno
@@ -217,10 +229,11 @@ def trainer_interface(trainer_login):
                             workout["completed"][j] = completed
                         
                         if st.button(f"✅ Finalizar Treino {i + 1}", key=f"finish_{i}"):
-                            workout["completed"] = [False] * len(workout["exercises"])
+                            # Remove o treino da lista de treinos do aluno
+                            student["workouts"].pop(i)
                             student["completed_workouts"] += 1  # Incrementa o contador de treinos realizados
                             save_trainer_students(trainer_login, data)
-                            st.success("✅ Treino finalizado! Marcações zeradas.")
+                            st.success("✅ Treino finalizado com sucesso!")
                             st.rerun()  # Recarrega a página para atualizar as caixas de marcação
     else:
         st.info("Nenhum aluno encontrado com o termo de busca.")
@@ -381,20 +394,21 @@ def student_interface():
         if not student["workouts"]:
             st.info("Nenhum treino disponível no momento.")
         else:
-            for workout in student["workouts"]:
+            for i, workout in enumerate(student["workouts"]):
                 with st.expander(f"🏋️‍♂️ Treino: {workout['name']}", expanded=False):
                     st.write(f"**Descrição:** {workout['description']}")
                     st.write("**Exercícios:**")
-                    for i, exercise in enumerate(workout["exercises"]):
-                        completed = st.checkbox(exercise, value=workout["completed"][i], key=f"{workout['name']}_{i}")
-                        workout["completed"][i] = completed
+                    for j, exercise in enumerate(workout["exercises"]):
+                        completed = st.checkbox(exercise, value=workout["completed"][j], key=f"{workout['name']}_{j}")
+                        workout["completed"][j] = completed
                     
-                    if st.button(f"✅ Finalizar Treino: {workout['name']}", key=f"finish_{workout['name']}"):
-                        workout["completed"] = [False] * len(workout["exercises"])
+                    if st.button(f"✅ Finalizar Treino: {workout['name']}", key=f"finish_{i}"):
+                        # Remove o treino da lista de treinos do aluno
+                        student["workouts"].pop(i)
                         student["completed_workouts"] += 1  # Incrementa o contador de treinos realizados
                         save_trainer_students(st.session_state.trainer_login, data)
-                        st.success("✅ Treino finalizado! Marcações zeradas.")
-                        st.rerun()  # Recarrega a página para atualizar as caixas de marcação
+                        st.success("✅ Treino finalizado com sucesso!")
+                        st.rerun()  # Recarrega a página para atualizar a lista de treinos
 
 # Interface de Início
 def home_interface():
